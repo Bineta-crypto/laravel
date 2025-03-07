@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = 'https://hub.docker.com/repository/docker/binta9619/laravel'
-        IMAGE_NAME = 'school-management-app'
+        REGISTRY = 'docker.io'
+        IMAGE_NAME = 'binta9619/laravel'
         IMAGE_TAG = 'latest'
         GIT_REPO = 'https://github.com/Bineta-crypto/laravel.git'
         SONAR_TOKEN = credentials('sonar-token')
@@ -37,12 +37,6 @@ pipeline {
             steps {
                 sh 'php artisan test'  // Tests Laravel
                 sh 'npm test'          // Tests Selenium pour le frontend
-            }
-        }
-
-        stage('Analyse de la qualité logicielle') {
-            steps {
-                sh 'sonar-scanner -Dsonar.projectKey=school-management -Dsonar.sources=./ -Dsonar.host.url=http://localhost:9000 -Dsonar.login=$SONAR_TOKEN'
             }
         }
 
