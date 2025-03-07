@@ -6,8 +6,8 @@ pipeline {
         IMAGE_NAME = 'binta9619/laravel'
         IMAGE_TAG = 'latest'
         GIT_REPO = 'https://github.com/Bineta-crypto/laravel.git'
-        SONAR_TOKEN = credentials('sonar-token')
-        KUBE_CONFIG = credentials('kubeconfig')
+        //SONAR_TOKEN = credentials('sonar-token')
+       // KUBE_CONFIG = credentials('kubeconfig')
     }
 
     stages {
