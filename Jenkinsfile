@@ -2,71 +2,59 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "school-management-app:latest"
-        GIT_REPO = "https://github.com/Aissatouh/Application-School-Management.git"
+        REGISTRY = 'mon-registry.com'
+        IMAGE_NAME = 'gestion-etablissement'
+        IMAGE_TAG = 'latest'
+        KUBE_CONFIG = credentials('kubeconfig') // Stocké dans Jenkins
+        NAMESPACE = 'default'
     }
 
     stages {
-        stage('Récupération du code source') {
+        stage('Checkout') {
             steps {
-                git url: "${GIT_REPO}", branch: 'main'
+                git branch: 'main', url: 'git@github.com:monrepo.git'
             }
         }
 
-        stage('Installation des dépendances Laravel') {
+        stage('Build & Test') {
             steps {
-                sh 'composer install'
-                sh 'php artisan key:generate'
-                sh 'php artisan migrate --force'
+                sh 'pip install -r requirements.txt'
+                sh 'pytest' // Ajoute tes tests ici
             }
         }
 
-        stage('Installation & build du frontend Node.js') {
+        stage('Build Docker Image') {
             steps {
-                sh 'npm install'
-                sh 'npm run build'
+                sh "docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
-        stage('Tests unitaires & IHM') {
+        stage('Push Docker Image') {
             steps {
-                sh 'php artisan test'    // Tests Laravel
-                sh 'npm test'            // Tests Selenium pour le frontend
+                withDockerRegistry([credentialsId: 'docker-credentials', url: "https://${REGISTRY}"]) {
+                    sh "docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                }
             }
         }
 
-        stage('Analyse de la qualité logicielle') {
+        stage('Deploy to Kubernetes') {
             steps {
-                sh 'sonar-scanner -Dsonar.projectKey=school-management -Dsonar.sources=./ -Dsonar.host.url=http://localhost:9000 -Dsonar.login=votre_token'
-            }
-        }
-
-        stage('Création de l\'image Docker') {
-            steps {
-                sh 'docker build -t ${DOCKER_IMAGE} .'
-            }
-        }
-
-        stage('Push de l\'image Docker') {
-            steps {
-                sh 'docker tag ${DOCKER_IMAGE} mon-registry/${DOCKER_IMAGE}'
-                sh 'docker push mon-registry/${DOCKER_IMAGE}'
-            }
-        }
-
-        stage('Déploiement sur Kubernetes') {
-            steps {
-                sh 'kubectl apply -f deployment.yaml'
+                withKubeConfig([credentialsId: 'kubeconfig']) {
+                    sh """
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Déploiement réussi !'
+            echo "Déploiement réussi sur Kubernetes !"
         }
         failure {
-            echo 'Échec du déploiement !'
+            echo "Échec du pipeline."
         }
     }
 }

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestion-etablissement
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gestion-etablissement
+  template:
+    metadata:
+      labels:
+        app: gestion-etablissement
+    spec:
+      containers:
+        - name: gestion-etablissement
+          image: mon-registry.com/gestion-etablissement:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ENV_VAR
+              value: "prod"
